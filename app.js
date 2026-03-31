@@ -9,13 +9,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors());
+app.use(cors({ origin: '*' })); // Useful for public APIs deployed on Railway/Render
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Log requests
 app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
 
@@ -24,7 +24,7 @@ app.use('/api', schoolRoutes);
 
 // Health check endpoint
 app.get('/', (req, res) => {
-    res.json({ message: 'School Management API is running.' });
+    res.json({ message: 'School Management API is running and ready to accept requests.' });
 });
 
 // 404 handler
@@ -35,6 +35,21 @@ app.use((req, res, next) => {
 // Global error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Start server with proper environment handling
+if (!PORT) {
+    console.error('CRITICAL ERROR: PORT is not defined, and fallback failed.');
+    process.exit(1);
+}
+
+const server = app.listen(PORT, () => {
+    console.log(`🚀 Server successfully started and running on port ${PORT}`);
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use.`);
+    } else {
+        console.error(`❌ Failed to start server on port ${PORT}:`, err.message);
+    }
+    process.exit(1);
 });
